@@ -13,7 +13,7 @@ class GBMProcess(StochasticProcess):
         self.r = float(args['r'])
         self.vol = float(args['vol'])
 
-    def simulate_paths(self, num_paths=100, num_time_steps=10):
+    def simulate_paths(self, num_paths=100, num_time_steps=10, z_table=None):
         ''' Simulates a given number of paths under GBM over a given number of time steps
 
         Args:
@@ -34,8 +34,10 @@ class GBMProcess(StochasticProcess):
         #Calculating how many years each time step takes
         delta_t = self.T / num_time_steps
 
-        #Generating randomness across the simulated paths
-        z_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
+        if z_table is None:
+            z_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
+
+
         #Initializing the path table with S0 in the first column (we'll fill in the rest next)
         stock_table = np.zeros((num_paths, num_time_steps + 1))
         stock_table[:, 0] = self.S0
@@ -65,7 +67,7 @@ class HestonProcess(StochasticProcess):
         self.volvol = float(args['volvol'])
         self.corr = float(args['corr'])
 
-    def simulate_paths(self, num_paths=100, num_time_steps=10):
+    def simulate_paths(self, num_paths=100, num_time_steps=10, antithetic=False):
         ''' Simulates a given number of paths under Heston over a given number of time steps
             for both the stock value and the volatility value
 
@@ -94,9 +96,16 @@ class HestonProcess(StochasticProcess):
         #Calculating how many years each time step takes
         delta_t = self.T / num_time_steps
 
-        #Generate 2 independent sources of randomness in our tables
-        z1_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
-        z2_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
+        if antithetic:
+            #Generate half of the zs, then add the negative of those to the bottom
+            z1_table = np.random.normal(0, 1, (num_paths // 2, num_time_steps + 1))
+            z1_table = np.concatenate((z1_table, -z1_table), axis=0)
+
+            z2_table = np.random.normal(0, 1, (num_paths // 2, num_time_steps + 1))
+            z2_table = np.concatenate((z2_table, -z2_table), axis=0)
+        else:
+            z1_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
+            z2_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
 
         #Correlate these sources of randomness
         # according to the Heston model's given correlation value
@@ -139,7 +148,7 @@ class JumpDiffusionProcess(StochasticProcess):
         self.jump_mean = float(args['jumpMean'])
         self.jump_vol = float(args['jumpVol'])
 
-    def simulate_paths(self, num_paths=100, num_time_steps=10):
+    def simulate_paths(self, num_paths=100, num_time_steps=10, antithetic=False):
         #Rows are paths, columns are time steps
         #Note: We always have an extra column at the start for t=0
         pass

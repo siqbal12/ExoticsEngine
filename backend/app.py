@@ -1,24 +1,36 @@
 data = {
-    "diffusionModelType": "GBM",
-    "diffusionModelArgs": {
-        "S0": 100,
-        "mu": 0.05,
-        "vol": 0.2,
-        "T": 1,
-        "r": 0.0375
-    },
-    "optionType": "European",
-    "optionArgs": {
-        "K": 100,
-        "T": 1,
-        "payoffType": "Put"
-    },
+    "diffusionModelType": "Heston",
+    "S0": 100,
+    "mu": 0.05,
+    "vol": 0.2,
+    "T": 1,
+    "r": 0.0375,
+    "V0": 0.04,
+    "kappa": 2.0,
+    "theta": 0.04,
+    "volvol": 0.5,
+    "corr": -0.7,
+    "optionType": "Arithmetic Asian",
+    "K": 100,
+    "T": 1,
+    "payoffType": "Call",
     "pricerType": "Monte Carlo",
-    "pricerArgs": {
-        "numPaths": 10000,
-        "numSteps": 100,
-        "varianceReductionType": None
-    }
+    "numPaths": 10000,
+    "numSteps": 100,
+    "varianceReductionType": 'None',
+    # "varianceReductionType": 'Antithetic',
+    # "varianceReductionType": 'Control',
+    # "varianceReductionType": 'StratifiedSampling',
+    "controlVariable": 'None',
+    # "controlVariable": 'S(T)',
+    # "controlVariable": 'Geometric Asian Call',
+    # "controlVariable": 'Digital Option',
+    "greekType": 'None',
+    # "greekType": 'Delta',
+    # "greekType": 'Gamma',
+    # "greekType": 'Theta',
+    # "greekType": 'Vega',
+    # "greekType": 'Rho',
 }
 
 from backend.pricing_engine import PricingEngine
