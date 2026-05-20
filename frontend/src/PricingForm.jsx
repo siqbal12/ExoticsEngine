@@ -268,7 +268,7 @@ export default function PricingForm() {
           Greek Estimator:
           <select name="greekEstimatorType" value={form.greekEstimatorType} onChange={handleChange}>
             <option value="Resimulation">Resimulation</option>
-            {form.optionType !== 'Digital' && form.optionType !== 'Barrier' && (<option value="Pathwise Differentiation">Pathwise Differentiation</option>)}
+            {form.diffusionModelType === 'GBM' && form.optionType !== 'Digital' && form.optionType !== 'Barrier' && (<option value="Pathwise Differentiation">Pathwise Differentiation</option>)}
             {/* Add more if needed */}
           </select>
         </label>
