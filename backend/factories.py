@@ -1,7 +1,9 @@
-from backend.diffusion_models import *
-from backend.options import *
-from backend.pricers import *
-from backend.greek_estimators import *
+from diffusion_models import *
+from options import *
+from pricers import *
+from greek_estimators import *
+from estimators_factory import GreekFactory
+
 
 class DiffusionModelFactory:
     @staticmethod
@@ -36,12 +38,16 @@ class OptionFactory:
             - option (Option): The parametrized option wanted by the user'''
         option_type = data['optionType']
 
-        if option_type == 'European':
+        if option_type == 'Vanilla':
             return EuropeanOption(data)
-        elif option_type == 'Asian':
+        elif option_type == 'Arithmetic Asian':
             return ArithmeticAsianOption(data)
+        elif option_type == 'Geometric Asian':
+            return GeometricAsianOption(data)
         elif option_type == 'Barrier':
             return BarrierOption(data)
+        elif option_type == 'Digital':
+            return DigitalOption(data)
         # elif option_type == 'Digital':
         #     return EuropeanOption(**option_args)
         # elif option_type == 'Lookback':
@@ -71,25 +77,3 @@ class PricerFactory:
             return PDEPricer(data)
         else:
             raise ValueError(f"Unknown Pricer Type: {pricer_type}")
-
-class GreekFactory:
-    @staticmethod
-    def create(data, diffusion_model):
-        ''' Given the inputs from the user, creates our diffusion model, option, and pricer
-
-        Args:
-            - data (dict/json): The input data from the user
-
-        Returns:
-            - pricer (Pricer): The parametrized pricer wanted by the user'''
-
-        greek_estimator_type = data['greekEstimatorType']
-
-        if greek_estimator_type == 'Resimulation':
-            return AnalyticalPricer(data)
-        elif greek_estimator_type == 'Pathwise Differentiation':
-            return MonteCarloPricer(data)
-        elif greek_estimator_type == 'Likelihood Method':
-            return PDEPricer(data)
-        else:
-            raise ValueError(f"Unknown Pricer Type: {greek_estimator_type}")

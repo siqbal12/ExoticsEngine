@@ -44,8 +44,8 @@ class ArithmeticAsianOption(Option):
 class GeometricAsianOption(Option):
 
     def discounted_payoff(self, stock_paths):
-        product_stock_values = np.mean(stock_paths, axis=1)
-        geometric_average_stock_values = product_stock_values ** (1 / stock_paths.shape[0])
+        # product across time steps then nth-root where n = #columns (time steps)
+        geometric_average_stock_values = np.exp(np.mean(np.log(stock_paths), axis=1))
         return self.discounted_payoff_helper(geometric_average_stock_values)
 
 class BarrierOption(Option):

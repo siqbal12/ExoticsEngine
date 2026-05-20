@@ -36,36 +36,39 @@ def geometric_asian_price(S0, K, r, sigma, T, n, option_type="Call"):
         return discount * (K * norm.cdf(-d2) - forward_adj * norm.cdf(-d1))
 
 def get_known_expectation(args, control_variable):
+    S0 = float(args['S0'])
+    K = float(args['K'])
+    r = float(args['r'])
+    vol = float(args['vol'])
+    T = float(args['T'])
+    num_steps = float(args['numSteps'])
     if control_variable == 'S(T)':
         #Use S(T) Formula
-        S0 = args['S0']
-        r = args['r']
-        T = args['T']
         return S0 * np.exp(r*T)
     elif control_variable == 'Vanilla Call':
         #Use BS Formula
-        return vanilla_price(args['S0'], args['K'], args['vol'], args['T'], option_type='Call')
+        return vanilla_price(S0, K, r, vol,T, option_type='Call')
     elif control_variable == 'Vanilla Put':
         #Use BS Formula
-        return vanilla_price(args['S0'], args['K'], args['vol'], args['T'], option_type='Put')
+        return vanilla_price(S0, K, r, vol,T, option_type='Put')
     elif control_variable == 'Digital Call':
         #Use BS Formula
-        return digital_price(args['S0'], args['K'], args['vol'], args['T'], option_type='Call')
+        return digital_price(S0, K, r, vol,T, option_type='Call')
     elif control_variable == 'Digital Put':
         #Use BS Formula
-        return digital_price(args['S0'], args['K'], args['vol'], args['T'], option_type='Put')
+        return digital_price(S0, K, r, vol,T, option_type='Put')
     elif control_variable == 'Geometric Asian Call':
         #Use BS Formula
-        return geometric_asian_price(args['S0'], args['K'], args['vol'], args['T'], n=args['numSteps'], option_type='Call')
+        return geometric_asian_price(S0, K, r, vol,T, n=num_steps, option_type='Call')
     elif control_variable == 'Geometric Asian Put':
         #Use BS Formula
-        return geometric_asian_price(args['S0'], args['K'], args['vol'], args['T'], n=args['numSteps'], option_type='Put')
+        return geometric_asian_price(S0, K, r, vol,T, n=num_steps, option_type='Put')
 
 def get_control_discounted_payoff(args, stock_paths, control_variable):
     if control_variable == 'S(T)':
         terminal_stock_values = stock_paths[:, -1]
-        r = args['r']
-        T = args['T']
+        r = float(args['r'])
+        T = float(args['T'])
         return np.exp(-r*T) * terminal_stock_values
     elif control_variable in ['Vanilla Call', 'Vanilla Put']:
         control_option = EuropeanOption(args)

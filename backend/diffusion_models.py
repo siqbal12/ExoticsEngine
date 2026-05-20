@@ -3,7 +3,7 @@ import numpy as np
 
 class StochasticProcess(ABC):
     @abstractmethod
-    def simulate_paths(self, num_paths=100, num_time_steps=10):
+    def simulate_paths(self, num_paths=100, num_time_steps=10, z_table=None, z2_table=None):
         pass
 
 class GBMProcess(StochasticProcess):
@@ -13,7 +13,7 @@ class GBMProcess(StochasticProcess):
         self.r = float(args['r'])
         self.vol = float(args['vol'])
 
-    def simulate_paths(self, num_paths=100, num_time_steps=10, z_table=None):
+    def simulate_paths(self, num_paths=100, num_time_steps=10, z_table=None, z2_table=None):
         ''' Simulates a given number of paths under GBM over a given number of time steps
 
         Args:
@@ -54,7 +54,7 @@ class GBMProcess(StochasticProcess):
         #Now we have our full stock paths
         #Note: The terminal stock values are in the last column
         #We need to return a tuple since other processes return a tuple as well
-        return (stock_table, )
+        return stock_table, None
 
 class HestonProcess(StochasticProcess):
     def __init__(self, args):
@@ -67,7 +67,7 @@ class HestonProcess(StochasticProcess):
         self.volvol = float(args['volvol'])
         self.corr = float(args['corr'])
 
-    def simulate_paths(self, num_paths=100, num_time_steps=10, antithetic=False):
+    def simulate_paths(self, num_paths=100, num_time_steps=10, z_table=None, z2_table=None):
         ''' Simulates a given number of paths under Heston over a given number of time steps
             for both the stock value and the volatility value
 
@@ -96,21 +96,10 @@ class HestonProcess(StochasticProcess):
         #Calculating how many years each time step takes
         delta_t = self.T / num_time_steps
 
-        if antithetic:
-            #Generate half of the zs, then add the negative of those to the bottom
-            z1_table = np.random.normal(0, 1, (num_paths // 2, num_time_steps + 1))
-            z1_table = np.concatenate((z1_table, -z1_table), axis=0)
-
-            z2_table = np.random.normal(0, 1, (num_paths // 2, num_time_steps + 1))
-            z2_table = np.concatenate((z2_table, -z2_table), axis=0)
-        else:
-            z1_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
-            z2_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
-
         #Correlate these sources of randomness
         # according to the Heston model's given correlation value
-        w1_table = np.sqrt(delta_t) * z1_table
-        w2_table = np.sqrt(delta_t) * (self.corr * z1_table + np.sqrt(1 - self.corr ** 2) * z2_table)
+        w1_table = np.sqrt(delta_t) * z_table
+        w2_table = np.sqrt(delta_t) * (self.corr * z_table + np.sqrt(1 - self.corr ** 2) * z2_table)
 
         #Initialize stochastic volatility path table
         stochastic_volatility_table = np.zeros((num_paths, num_time_steps + 1))
@@ -144,11 +133,47 @@ class JumpDiffusionProcess(StochasticProcess):
         self.r = float(args['r'])
         self.vol = float(args['vol'])
         self.lmbda = float(args['lmbda'])
-        self.k = float(args['k'])
         self.jump_mean = float(args['jumpMean'])
         self.jump_vol = float(args['jumpVol'])
 
-    def simulate_paths(self, num_paths=100, num_time_steps=10, antithetic=False):
-        #Rows are paths, columns are time steps
-        #Note: We always have an extra column at the start for t=0
-        pass
+        self.k = np.exp(
+            self.jump_mean + 0.5 * self.jump_vol**2
+        ) - 1
+
+    def simulate_paths(self, num_paths=100, num_time_steps=10, z_table=None, z2_table=None):
+
+        delta_t = self.T / num_time_steps
+
+        if z_table is None:
+            z_table = np.random.normal(0, 1, (num_paths, num_time_steps + 1))
+
+        # Poisson jump counts
+        jump_table = np.random.poisson(
+            self.lmbda * delta_t,
+            (num_paths, num_time_steps)
+        )
+
+        stock_table = np.zeros((num_paths, num_time_steps + 1))
+        stock_table[:, 0] = self.S0
+
+        for t_step in range(1, num_time_steps + 1):
+
+            term_1 = (self.r - self.lmbda * self.k - 0.5 * self.vol ** 2) * delta_t
+            term_2 = self.vol * np.sqrt(delta_t) * z_table[:, t_step - 1]
+
+            diffusion_term = np.exp(term_1 + term_2)
+
+            # Number of jumps for each path
+            n_jumps = jump_table[:, t_step - 1]
+
+            # Total jump log-size
+            jump_sums = np.random.normal(
+                loc=n_jumps * self.jump_mean,
+                scale=np.sqrt(n_jumps) * self.jump_vol
+            )
+
+            jump_term = np.exp(jump_sums)
+
+            stock_table[:, t_step] = stock_table[:, t_step - 1] * diffusion_term * jump_term
+
+        return stock_table, None

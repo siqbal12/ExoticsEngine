@@ -18,27 +18,27 @@ class MonteCarloPricer(Pricer):
         self.num_time_steps = int(args['numSteps'])
         self.args = args
 
-    def price_classic_mc(self, diffusion_model, option, z_table=None):
-        paths = diffusion_model.simulate_paths(num_paths=self.num_paths, num_time_steps=self.num_time_steps, z_table=z_table)
+    def price_classic_mc(self, diffusion_model, option, z_table=None, z2_table=None):
+        paths = diffusion_model.simulate_paths(num_paths=self.num_paths, num_time_steps=self.num_time_steps, z_table=z_table, z2_table=z2_table)
         discounted_payoffs = option.discounted_payoff(paths[0])
         discounted_payoff_mean = np.mean(discounted_payoffs)
         discounted_payoff_se = np.std(discounted_payoffs) / np.sqrt(len(discounted_payoffs))
 
         return discounted_payoff_mean, discounted_payoff_se
 
-    def price_classic_antithetic(self, diffusion_model, option, z_table=None):
-        paths = diffusion_model.simulate_paths(num_paths=self.num_paths, num_time_steps=self.num_time_steps, z_table=z_table)
+    def price_classic_antithetic(self, diffusion_model, option, z_table=None, z2_table=None):
+        paths = diffusion_model.simulate_paths(num_paths=self.num_paths, num_time_steps=self.num_time_steps, z_table=z_table, z2_table=z2_table)
         discounted_payoffs = option.discounted_payoff(paths[0])
         discounted_payoff_mean = np.mean(discounted_payoffs)
         discounted_payoff_se = np.std(discounted_payoffs) / np.sqrt(len(discounted_payoffs))
 
         return discounted_payoff_mean, discounted_payoff_se
 
-    def price_classic_control(self, diffusion_model, option, z_table=None, control_variable='S(T)'):
-        paths = diffusion_model.simulate_paths(num_paths=self.num_paths, num_time_steps=self.num_time_steps, z_table=z_table)
+    def price_classic_control(self, diffusion_model, option, z_table=None, z2_table=None, control_variable='S(T)'):
+        paths = diffusion_model.simulate_paths(num_paths=self.num_paths, num_time_steps=self.num_time_steps, z_table=z_table, z2_table=z2_table)
         known_expectation = get_known_expectation(self.args, control_variable)
         main_discounted_payoffs = option.discounted_payoff(paths[0])
-        control_discounted_payoffs = get_control_discounted_payoff(paths[0], control_variable=control_variable)
+        control_discounted_payoffs = get_control_discounted_payoff(self.args, paths[0], control_variable=control_variable)
 
         cov_xy = np.cov(main_discounted_payoffs, control_discounted_payoffs, ddof=1)[0, 1]
         var_y = np.var(control_discounted_payoffs, ddof=1)
@@ -50,11 +50,11 @@ class MonteCarloPricer(Pricer):
 
         return estimator_mean, estimator_se
 
-    def price(self, diffusion_model, option, z_table=None):
+    def price(self, diffusion_model, option, z_table=None, z2_table=None):
         if self.variance_reduction_type in ['None', 'Antithetic', 'Stratified Sampling']:
-            return self.price_classic_mc(diffusion_model, option, z_table=z_table)
+            return self.price_classic_mc(diffusion_model, option, z_table=z_table, z2_table=z2_table)
         elif self.variance_reduction_type == 'Control':
-            return self.price_classic_control(diffusion_model, option, z_table=z_table, control_variable=self.args['controlVariable'])
+            return self.price_classic_control(diffusion_model, option, z_table=z_table, z2_table=z2_table, control_variable=self.args['controlVariable'])
 
 class PDEPricer(Pricer):
     def price(self, option, model):
