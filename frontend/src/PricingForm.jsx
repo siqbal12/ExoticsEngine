@@ -237,9 +237,9 @@ export default function PricingForm() {
           Variance Reduction Method:
           <select name="varianceReductionType" value={form.varianceReductionType} onChange={handleChange}>
             <option value="None">None</option>
-            <option value="Antithetic">Antithetic</option>
+            {form.diffusionModelType === 'GBM' && (<option value="Antithetic">Antithetic</option>)}
             <option value="Control">Control</option>
-            <option value="Stratified Sampling">Stratified Sampling</option>
+            {form.diffusionModelType === 'GBM' && (<option value="Stratified Sampling">Stratified Sampling</option>)}
             {/* Add more if needed */}
           </select>
         </label>
@@ -268,7 +268,7 @@ export default function PricingForm() {
           Greek Estimator:
           <select name="greekEstimatorType" value={form.greekEstimatorType} onChange={handleChange}>
             <option value="Resimulation">Resimulation</option>
-            <option value="Pathwise Differentiation">Pathwise Differentiation</option>
+            {form.optionType !== 'Digital' && form.optionType !== 'Barrier' && (<option value="Pathwise Differentiation">Pathwise Differentiation</option>)}
             {/* Add more if needed */}
           </select>
         </label>
